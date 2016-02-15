@@ -23,7 +23,9 @@ http://www.mulesoft.org/schema/mule/wd-connector http://www.mulesoft.org/schema/
 			startDelay="${poll.startDelayMillis}" />
 			<watermark variable="lastQueryDate" default-expression="${watermark.default.expression}"/>
 			<processor-chain doc:name="query Workers">
-			<logger message="Fetching Workday updates..." level="INFO" doc:name="Log 'Fetching workday updates...'"/>
+            <logger message="lastQueryDate before: #[flowVars.lastQueryDate]" level="INFO" doc:name="Logger"/>
+            <set-variable variableName="#[flowVars.lastQueryDate]" value="#[new org.mule.el.datetime.DateTime(lastQueryDate).plusMilliSeconds(1).toCalendar()]" doc:name="increase lastQueryDate by 1 ms"/>
+			<logger message="Fetching Workday updates... #[flowVars.lastQueryDate]" level="INFO" doc:name="Log 'Fetching workday updates...'"/>
                 <dw:transform-message doc:name="Create GetWorkers Request">
                     <dw:set-payload><![CDATA[%dw 1.0
 %output application/xml
@@ -45,7 +47,8 @@ http://www.mulesoft.org/schema/mule/wd-connector http://www.mulesoft.org/schema/
 		ns0#Response_Group: {
 			ns0#Include_Reference: true,
 			ns0#Include_Personal_Information: true,
-			ns0#Include_Organizations: true
+			ns0#Include_Organizations: true,
+			ns0#Include_Transaction_Log_Data: true
 		}
 	}
 }]]></dw:set-payload>
@@ -55,6 +58,9 @@ http://www.mulesoft.org/schema/mule/wd-connector http://www.mulesoft.org/schema/
                     <dw:set-payload><![CDATA[%dw 1.0
 %output application/java
 %namespace ns0 urn:com.workday/bsvc
+%function convertToArray(element) {
+	array : element when (element is :array) otherwise [element]
+}
 ---
 payload.ns0#Get_Workers_Response.ns0#Response_Data.*ns0#Worker map ((worker , indexOfWorker) -> {
 	SuppliedName: worker.ns0#Worker_Data.ns0#Personal_Data.ns0#Name_Data.ns0#Legal_Name_Data.ns0#Name_Detail_Data.ns0#Last_Name ++
@@ -69,15 +75,11 @@ payload.ns0#Get_Workers_Response.ns0#Response_Data.*ns0#Worker map ((worker , in
 		id: workerOrganizationDatum.ns0#Organization_Data.ns0#Organization_Reference_ID,
 		name: workerOrganizationDatum.ns0#Organization_Data.ns0#Organization_Name,
 		type: workerOrganizationDatum.ns0#Organization_Data.ns0#Organization_Type_Reference.@ns0#Descriptor
-	}) filter $.type == "Supervisory"
+	}) filter $.type == "Supervisory",
+	transactionEntryMoments: convertToArray(worker.ns0#Worker_Data.ns0#Transaction_Log_Entry_Data).array.*ns0#Transaction_Log_Entry.ns0#Transaction_Log_Data.ns0#Transaction_Entry_Moment
 }) unless (payload.ns0#Get_Workers_Response.ns0#Response_Data is :null) otherwise []]]></dw:set-payload>
-                    <dw:set-variable variableName="lastQueryDate"><![CDATA[%dw 1.0
-%output application/java
-%namespace ns0 urn:com.workday/bsvc
----
-payload.ns0#Get_Workers_Response.ns0#Request_Criteria.ns0#Transaction_Log_Criteria_Data.ns0#Transaction_Date_Range_Data.ns0#Updated_Through]]></dw:set-variable>
                 </dw:transform-message>
-
+				<logger message="TEST #[payload]" level="INFO" doc:name="Logger"/>
 			</processor-chain>
 		</poll>
 

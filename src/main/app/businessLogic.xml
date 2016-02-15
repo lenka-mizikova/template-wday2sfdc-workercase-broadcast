@@ -85,6 +85,7 @@ payload map {
 	($ - 'orgIds' 
 	  - 'LastModifiedDate'
 	  - 'OrganizationName'
+	  - 'transactionEntryMoments'
 	  + 'Description': p('sfdc.description'))
 }]]></dw:set-payload>
                     </dw:transform-message>
