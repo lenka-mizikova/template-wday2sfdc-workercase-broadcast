@@ -21,10 +21,9 @@ http://www.mulesoft.org/schema/mule/wd-connector http://www.mulesoft.org/schema/
 		<poll doc:name="fireup Worker synchronization">
 		<fixed-frequency-scheduler frequency="${poll.frequencyMillis}"
 			startDelay="${poll.startDelayMillis}" />
-			<watermark variable="lastQueryDate" default-expression="${watermark.default.expression}"/>
+			<watermark variable="lastQueryDate" default-expression="${watermark.default.expression}" selector="MAX" selector-expression="#[groovy: payload.transactionEntryMoments.max()]"/>
 			<processor-chain doc:name="query Workers">
-            <logger message="lastQueryDate before: #[flowVars.lastQueryDate]" level="INFO" doc:name="Logger"/>
-            <set-variable variableName="#[flowVars.lastQueryDate]" value="#[new org.mule.el.datetime.DateTime(lastQueryDate).plusMilliSeconds(1).toCalendar()]" doc:name="increase lastQueryDate by 1 ms"/>
+            <set-variable variableName="lastQueryDate" value="#[(new org.mule.el.datetime.DateTime(lastQueryDate)).plusMilliSeconds(1).toString()]" doc:name="increase lastQueryDate by 1 ms"/>
 			<logger message="Fetching Workday updates... #[flowVars.lastQueryDate]" level="INFO" doc:name="Log 'Fetching workday updates...'"/>
                 <dw:transform-message doc:name="Create GetWorkers Request">
                     <dw:set-payload><![CDATA[%dw 1.0
@@ -79,7 +78,6 @@ payload.ns0#Get_Workers_Response.ns0#Response_Data.*ns0#Worker map ((worker , in
 	transactionEntryMoments: convertToArray(worker.ns0#Worker_Data.ns0#Transaction_Log_Entry_Data).array.*ns0#Transaction_Log_Entry.ns0#Transaction_Log_Data.ns0#Transaction_Entry_Moment
 }) unless (payload.ns0#Get_Workers_Response.ns0#Response_Data is :null) otherwise []]]></dw:set-payload>
                 </dw:transform-message>
-				<logger message="TEST #[payload]" level="INFO" doc:name="Logger"/>
 			</processor-chain>
 		</poll>
 
