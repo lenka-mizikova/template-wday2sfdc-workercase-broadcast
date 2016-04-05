@@ -23,7 +23,6 @@ http://www.mulesoft.org/schema/mule/wd-connector http://www.mulesoft.org/schema/
 			startDelay="${poll.startDelayMillis}" />
 			<watermark variable="lastQueryDate" default-expression="${watermark.default.expression}" selector="MAX" selector-expression="#[groovy: payload.transactionEntryMoments.max()]"/>
 			<processor-chain doc:name="query Workers">
-            <set-variable variableName="lastQueryDate" value="#[(new org.mule.el.datetime.DateTime(lastQueryDate)).plusMilliSeconds(1).toString()]" doc:name="increase lastQueryDate by 1 ms"/>
 			<logger message="Fetching Workday updates... #[flowVars.lastQueryDate]" level="INFO" doc:name="Log 'Fetching workday updates...'"/>
                 <dw:transform-message doc:name="Create GetWorkers Request">
                     <dw:set-payload><![CDATA[%dw 1.0
@@ -75,7 +74,7 @@ payload.ns0#Get_Workers_Response.ns0#Response_Data.*ns0#Worker map ((worker , in
 		name: workerOrganizationDatum.ns0#Organization_Data.ns0#Organization_Name,
 		type: workerOrganizationDatum.ns0#Organization_Data.ns0#Organization_Type_Reference.@ns0#Descriptor
 	}) filter $.type == "Supervisory",
-	transactionEntryMoments: convertToArray(worker.ns0#Worker_Data.ns0#Transaction_Log_Entry_Data).array.*ns0#Transaction_Log_Entry.ns0#Transaction_Log_Data.ns0#Transaction_Entry_Moment
+	transactionEntryMoments: convertToArray(worker.ns0#Worker_Data.ns0#Transaction_Log_Entry_Data).array map ($.ns0#Transaction_Log_Entry.ns0#Transaction_Log_Data.ns0#Transaction_Entry_Moment as :datetime)
 }) unless (payload.ns0#Get_Workers_Response.ns0#Response_Data is :null) otherwise []]]></dw:set-payload>
                 </dw:transform-message>
 			</processor-chain>
