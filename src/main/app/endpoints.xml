@@ -23,6 +23,7 @@ http://www.mulesoft.org/schema/mule/wd-connector http://www.mulesoft.org/schema/
 			startDelay="${poll.startDelayMillis}" />
 			<watermark variable="lastQueryDate" default-expression="${watermark.default.expression}" selector="MAX" selector-expression="#[groovy: payload.transactionEntryMoments.max()]"/>
 			<processor-chain doc:name="query Workers">
+			<set-variable variableName="lastQueryDate" value="#[(new org.mule.el.datetime.DateTime(flowVars.lastQueryDate)).plusMilliSeconds(1)]" doc:name="increase lastQueryDate by 1 ms"/>
 			<logger message="Fetching Workday updates... #[flowVars.lastQueryDate]" level="INFO" doc:name="Log 'Fetching workday updates...'"/>
                 <dw:transform-message doc:name="Create GetWorkers Request">
                     <dw:set-payload><![CDATA[%dw 1.0
